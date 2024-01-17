@@ -14,22 +14,26 @@ def train_network(X, Y, epochs, learning_rate, network):
         upper = (epoch % 5) * 500 + 500
         x_batch, y_batch = X[lower:upper], Y[lower:upper]
         for x, y in zip(x_batch, y_batch):
-            sequenced_x = [hold.reshape((-1, 1)) for hold in to_sequence(x)]
-            for layer in network:
-                if layer.to_string() == "recurrent":
-                    for hold in sequenced_x:
-                        output = layer.forward(hold)
-                else:
-                    output = layer.forward(output)
+            sequenced_x = to_sequence(x)
+            for hold in sequenced_x:
+                hold = hold.reshape((-1, 1))
+                output = network.recurrent_layer.forward(hold)
+                output = network.recurrent_activation.forward(output)
+            # passing through two dense layers
+            output = network.dense_layer.forward(output)
+            output = network.dense_activation.forward(output)
+            output = network.dense_layer2.forward(output)
+            output = network.final_activation_layer.forward(output)
             error += bce(y, output)
             # backprop; initial gradient is gradient from final activation function
             gradient = bce_prime(y, output)
-            for layer in reversed(network):
-                if layer.to_string() == "recurrent":
-                    for i in range(len(sequenced_x) - 1):
-                        gradient = layer.backward(gradient, learning_rate)
-                else:
-                    gradient = layer.backward(gradient, learning_rate)
+            gradient = network.final_activation_layer.backward(gradient, learning_rate)
+            gradient = network.dense_layer2.backward(gradient, learning_rate)
+            gradient = network.dense_activation.backward(gradient, learning_rate)
+            gradient = network.dense_layer.backward(gradient, learning_rate)
+            for i in range(len(sequenced_x) - 1):
+                gradient = network.recurrent_activation.backward(gradient, learning_rate)
+                gradient = network.recurrent_layer.backward(gradient, learning_rate)
         error /= len(X)
         print(f"Epoch: {epoch}\tError: {error}")
     return network
@@ -41,7 +45,7 @@ def main():
     # training data and raw grades for evaluating network concisely
     x_train, y_train, raw_grades = parse_file(climbs)
     # initializing network options and layers
-    network = [Recurrent(198, 50, Tanh()), Dense(50, 20), Tanh(), Dense(20, 16), Softmax()]
+    network = RNN(Recurrent(198, 50), ReLU(), Dense(50, 20), Tanh(), Dense(20, 16), Softmax())
     epochs = 20
     learning_rate = 0.05
     trained_network = train_network(x_train, y_train, epochs, learning_rate, network)

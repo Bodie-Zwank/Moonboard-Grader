@@ -33,7 +33,7 @@ class Dense(Layer):
          # backprop method in each layer takes the previous output gradient as input, so we return it
          return next_output_gradient
     def to_string(self):
-        print("Dense")
+        return "dense"
     def get_gradients(self):
         return np.concatenate([self.weights.flatten(), self.biases.flatten()])
     
@@ -63,7 +63,7 @@ class ReLU(Activation):
             return np.array(slopes).reshape(len(slopes), 1)
         super().__init__(relu, relu_prime)
     def to_string(self):
-        print("ReLU")
+        return "relu"
 
 class Tanh(Activation):
     def __init__(self):
@@ -73,7 +73,7 @@ class Tanh(Activation):
         # sending parameters to parent class
         super().__init__(tanh, tanh_prime)
     def to_string(self):
-        print("Tanh")
+        return "tanh"
 
 class Softmax(Layer):
     def forward(self, input):
@@ -84,7 +84,7 @@ class Softmax(Layer):
         n = np.size(self.output)
         return np.dot((np.identity(n) - self.output.T) * self.output, output_gradient)
     def to_string(self):
-        print("Softmax")
+        return "softmax"
     
 class Sigmoid(Activation):
     def __init__(self):
@@ -97,14 +97,15 @@ class Sigmoid(Activation):
 
         super().__init__(sigmoid, sigmoid_prime)
     def to_string(self):
-        print("Sigmoid")
+        return "sigmoid"
     def get_gradients(self):
         return np.array([])
 
 class Recurrent(Layer):
-    def __init__(self, input_size, hidden_size):
+    def __init__(self, input_size, hidden_size, activation):
         self.input_size = input_size
         self.hidden_size = hidden_size
+        self.activation = activation
 
         # initialize parameters
         self.hidden_weights = np.random.randn(hidden_size, hidden_size) * 0.01
@@ -123,9 +124,10 @@ class Recurrent(Layer):
         input_vector = np.dot(self.input_weights, input)
         # summing two vectors and biases (operation to give next hidden state)
         self.hidden_state = hidden_vector + input_vector + self.biases
-        return self.hidden_state
+        return self.activation.forward(self.hidden_state)
     def backward(self, output_gradient, learning_rate):
         # finding all gradients
+        output_gradient = self.activation.backward(output_gradient, learning_rate)
         next_output_gradient = np.dot(self.hidden_weights.T, output_gradient)
         hidden_weights_gradient = np.dot(output_gradient, self.hidden_state.T)
         input_weights_gradient = np.dot(output_gradient, self.input.T)
@@ -138,3 +140,5 @@ class Recurrent(Layer):
         return next_output_gradient
     def get_gradients(self):
         return np.concatenate([self.hidden_weights.flatten(), self.input_weights.flatten(), self.biases.flatten()])
+    def to_string(self):
+        return "recurrent"

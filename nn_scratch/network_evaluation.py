@@ -25,16 +25,13 @@ def evaluate_nn(climbs, grades, network):
 
 def predict_rnn(network, x):
     # change climb to sequence of holds
-    sequenced_x = to_sequence(x)
-    for hold in sequenced_x:
-        hold = hold.reshape((-1, 1))
-        output = network.recurrent_layer.forward(hold)
-        output = network.recurrent_activation.forward(output)
-    # passing through two dense layers
-    output = network.dense_layer.forward(output)
-    output = network.dense_activation.forward(output)
-    output = network.dense_layer2.forward(output)
-    output = network.final_activation_layer.forward(output)
+    sequenced_x = [hold.reshape((-1, 1)) for hold in to_sequence(x)]
+    for layer in network:
+        if layer.to_string() == "recurrent":
+            for hold in sequenced_x:
+                output = layer.forward(hold)
+        else:
+            output = layer.forward(output)
     # return index of max value in predictions
     return np.argmax(output)
 
