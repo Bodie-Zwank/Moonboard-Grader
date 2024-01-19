@@ -6,6 +6,7 @@ from get_data import *
 from network_evaluation import *
 import math
 
+# LSTM NOT YET IMPLEMENTED
 
 def train_network(X, Y, epochs, learning_rate, network):
     for epoch in range(epochs):
